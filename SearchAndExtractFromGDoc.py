@@ -7,13 +7,13 @@ __maintainer__ = "Prakash Manandhar"
 __email__ = "prakashm@alum.mit.edu"
 __status__ = "Production"
 
+import argparse
+import re
 import os.path
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-
-import argparse
 
 def init_argparse():
     parser = argparse.ArgumentParser(description='Search and extract from google docs document.')
@@ -69,8 +69,14 @@ def read_strucutural_elements(elements):
     return text
 
 def find_text(doc_text, regex, outfile):
-    with open(outfile, 'w') as file:  
-        file.write(doc_text)
+    with open(outfile, 'w') as fp:  
+        fp.write("MatchID,MatchText\n")
+        matches = re.findall(regex, doc_text)
+        print(f"Found {len(matches)} matches ...")
+        i = 1
+        for m in matches:
+            fp.write(f"{i},{m}\n")
+            i = i + 1
 
 if __name__ == "__main__":
     parser = init_argparse()
