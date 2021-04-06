@@ -24,6 +24,54 @@ def init_argparse():
     parser.add_argument('--outfile', help='Output File', required=True)
     return parser
 
+"""
+Source: https://developers.google.com/docs/api/samples/extract-text#python
+"""
+def read_paragraph_element(element):
+    """Returns the text in the given ParagraphElement.
+
+        Args:
+            element: a ParagraphElement from a Google Doc.
+    """
+    text_run = element.get('textRun')
+    if not text_run:
+        return ''
+    return text_run.get('content')
+
+"""
+Source: https://developers.google.com/docs/api/samples/extract-text#python
+"""
+def read_strucutural_elements(elements):
+    """Recurses through a list of Structural Elements to read a document's text where text may be
+        in nested elements.
+
+        Args:
+            elements: a list of Structural Elements.
+    """
+    text = ''
+    for value in elements:
+        if 'paragraph' in value:
+            elements = value.get('paragraph').get('elements')
+            for elem in elements:
+                text += read_paragraph_element(elem)
+        elif 'table' in value:
+            # The text in table cells are in nested Structural Elements and tables may be
+            # nested.
+            table = value.get('table')
+            for row in table.get('tableRows'):
+                cells = row.get('tableCells')
+                for cell in cells:
+                    text += read_strucutural_elements(cell.get('content'))
+        elif 'tableOfContents' in value:
+            # The text in the TOC is also in a Structural Element.
+            toc = value.get('tableOfContents')
+            text += read_strucutural_elements(toc.get('content'))
+    return text
+
+def find_text(doc_text, regex, outfile):
+    with open(outfile, 'w') as file:  
+        file.write(doc_text)
+
 if __name__ == "__main__":
     parser = init_argparse()
     args, unknwon_args = parser.parse_known_args()
@@ -54,6 +102,9 @@ if __name__ == "__main__":
     print("Retrieving document ....")
     document = service.documents().get(documentId=args.id).execute()
 
-    print('The title of the document is: {}'.format(document.get('title')))
+    doc_content = document.get('body').get('content')
+    doc_text = read_strucutural_elements(doc_content)
+
+    find_text(doc_text, args.regex, args.outfile)
 
     
